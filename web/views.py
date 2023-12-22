@@ -3,7 +3,8 @@ from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
 
-from web.forms import RegistrationForm, AuthForm
+from web.forms import RegistrationForm, AuthForm, RoomForm
+from .models import Room
 
 # Create your views here.
 
@@ -54,3 +55,24 @@ def auth_view(request):
 def logout_view(request):
     logout(request)
     return redirect('main')
+
+
+def create_room(request):
+    if request.method == 'POST':
+        form = RoomForm(request.POST)
+        if form.is_valid():
+            room = form.save(commit=False)
+            room.user = request.user
+            room.save()
+            form.save_m2m()
+            # Перенаправляем на страницу списка комнат
+            return redirect('room_list')
+    else:
+        form = RoomForm()
+
+    return render(request, 'create_room.html', {'form': form})
+
+
+def room_list(request):
+    rooms = Room.objects.all()
+    return render(request, 'room_list.html', {'rooms': rooms})
