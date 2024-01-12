@@ -1,10 +1,12 @@
 from datetime import datetime
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth import get_user_model, authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 
 from web.forms import RegistrationForm, AuthForm, RoomForm
-from .models import Room
+from .models import Room, RoomParticipant
 
 # Create your views here.
 
@@ -57,15 +59,20 @@ def logout_view(request):
     return redirect('main')
 
 
+@login_required
 def create_room(request):
     if request.method == 'POST':
         form = RoomForm(request.POST)
         if form.is_valid():
             room = form.save(commit=False)
-            room.user = request.user
+            room.creator = request.user
             room.save()
             form.save_m2m()
             # Перенаправляем на страницу списка комнат
+            room_participant, created = RoomParticipant.objects.get_or_create(
+                user=request.user, room=room)
+            if created:
+                room_participant.save()
             return redirect('room_list')
     else:
         form = RoomForm()
@@ -73,6 +80,26 @@ def create_room(request):
     return render(request, 'create_room.html', {'form': form})
 
 
+@login_required
 def room_list(request):
     rooms = Room.objects.all()
     return render(request, 'room_list.html', {'rooms': rooms})
+
+
+@login_required
+def room_detail(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+
+    if request.method == 'POST':
+        entered_password = request.POST.get('password', '')
+        if entered_password == room.password:
+            lobby_participant, created = RoomParticipant.objects.get_or_create(
+                user=request.user, room=room)
+            if created:
+                lobby_participant.save()
+        else:
+            messages.error(request, 'Incorrect password. Please try again.')
+            pass
+
+    participants = room.participants.all()
+    return render(request, 'room_detail.html', {'room': room, 'participants': participants})

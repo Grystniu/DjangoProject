@@ -4,7 +4,7 @@
     <h2>Room List</h2>
     <ul>
         {% for room in rooms %}
-            <li>{{ room.room_name }}</li>
+            <li><a href="{% url 'room_detail' room_id=room.id %}">{{ room.room_name }}</a></li>
         {% endfor %}
     </ul>
 {% endblock %}
