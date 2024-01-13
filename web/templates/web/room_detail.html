@@ -10,10 +10,10 @@
         {% endfor %}
     </ul>
 
-    <form method="post" action="{% url 'room_detail' room_id=room.id %}">
+    {% comment %} <form method="post" action="{% url 'room_detail' room_id=room.id %}">
         {% csrf_token %}
         <label for="password">Enter room Password:</label>
         <input type="password" name="password" required>
         <button type="submit">Join room</button>
-    </form>
+    </form> {% endcomment %}
 {% endblock %}

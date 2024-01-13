@@ -3,7 +3,8 @@ from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import get_user_model, authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+
 
 from web.forms import RegistrationForm, AuthForm, RoomForm
 from .models import Room, RoomParticipant
@@ -83,23 +84,65 @@ def create_room(request):
 @login_required
 def room_list(request):
     rooms = Room.objects.all()
+    # if request.method == 'POST':
+    #     room_id = request.POST.get('room_id', None)
+    #     entered_password = request.POST.get('password', '')
+    #     if room_id:
+    #         room = get_object_or_404(Room, id=room_id)
+    #         if entered_password == room.password:
+    #             room_participant, created = RoomParticipant.objects.get_or_create(
+    #                 user=request.user, room=room)
+    #             if created:
+    #                 room_participant.save()
+    #             return redirect('room_detail', room_id=room.id)
+    #         else:
+    #             messages.error(
+    #                 request, 'Incorrect password. Please try again.')
     return render(request, 'room_list.html', {'rooms': rooms})
 
 
-@login_required
-def room_detail(request, room_id):
-    room = get_object_or_404(Room, id=room_id)
+def is_room_participant(user, room_id):
+    return RoomParticipant.objects.filter(user=user, room_id=room_id).exists()
 
-    if request.method == 'POST':
-        entered_password = request.POST.get('password', '')
-        if entered_password == room.password:
-            lobby_participant, created = RoomParticipant.objects.get_or_create(
-                user=request.user, room=room)
-            if created:
-                lobby_participant.save()
-        else:
-            messages.error(request, 'Incorrect password. Please try again.')
-            pass
+
+@user_passes_test(lambda u: u.is_authenticated, login_url='/')
+def room_detail(request, room_id):
+
+    if not is_room_participant(request.user, room_id):
+        return redirect('/room_list/')
+
+    room = get_object_or_404(Room, id=room_id)
+    participants = RoomParticipant.objects.filter(room=room)
+    # if request.method == 'POST':
+    #     entered_password = request.POST.get('password', '')
+    #     if entered_password == room.password:
+    #         lobby_participant, created = RoomParticipant.objects.get_or_create(
+    #             user=request.user, room=room)
+    #         if created:
+    #             lobby_participant.save()
+    #     else:
+    #         messages.error(request, 'Incorrect password. Please try again.')
+    #         pass
 
     participants = room.participants.all()
     return render(request, 'room_detail.html', {'room': room, 'participants': participants})
+
+
+@login_required
+def join_room_from_list(request):
+    if request.method == 'POST':
+        room_id = request.POST.get('room_id', None)
+        entered_password = request.POST.get('password', '')
+        if room_id:
+            room = get_object_or_404(Room, id=room_id)
+            if entered_password == room.password:
+                room_participant, created = RoomParticipant.objects.get_or_create(
+                    user=request.user, room=room)
+                if created:
+                    room_participant.save()
+                return redirect('room_detail', room_id=room.id)
+            else:
+                messages.error(
+                    request, 'Incorrect password. Please try again.')
+
+    return redirect('room_list')
