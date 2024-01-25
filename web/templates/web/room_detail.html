@@ -10,10 +10,35 @@
         {% endfor %}
     </ul>
 
-    {% comment %} <form method="post" action="{% url 'room_detail' room_id=room.id %}">
-        {% csrf_token %}
-        <label for="password">Enter room Password:</label>
-        <input type="password" name="password" required>
-        <button type="submit">Join room</button>
-    </form> {% endcomment %}
+    
+    <h3>Chat</h3>
+    <div id="chat-messages"></div>
+
+    <form id="chat-form">
+        <input type="text" id="chat-input" autocomplete="off" />
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const chatSocket = new WebSocket(
+            'ws://' + window.location.host +
+            '/ws/room_det/' + {{ room.id }} + '/'
+        );
+
+        chatSocket.onmessage = function (e) {
+            const data = JSON.parse(e.data);
+            const message = data.message;
+            document.querySelector('#chat-messages').innerHTML += '<p>' + message + '</p>';
+        };
+
+        document.querySelector('#chat-form').onsubmit = function (e) {
+            e.preventDefault();
+            const messageInputDom = document.querySelector('#chat-input');
+            const message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInputDom.value = '';
+        };
+    </script>
 {% endblock %}

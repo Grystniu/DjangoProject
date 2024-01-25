@@ -35,5 +35,8 @@ class RoomForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(RoomForm, self).__init__(*args, **kwargs)
-        # Пользовательские настройки, если они нужны
-        # Например, можно ограничить выбор фильмов только теми, которые созданы текущим пользователем
+
+
+class RoomFilterForm(forms.Form):
+    search = forms.CharField(widget=forms.TextInput(
+        attrs={'placeholder': 'Поиск по названию'}), required=False)
